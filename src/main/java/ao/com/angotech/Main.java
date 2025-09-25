@@ -2,6 +2,7 @@ package ao.com.angotech;
 
 import ao.com.angotech.model.Curriculum;
 import ao.com.angotech.model.UserInput;
+import ao.com.angotech.service.EmailService;
 import ao.com.angotech.service.OpenAiServiceWrapper;
 import ao.com.angotech.service.PdfService;
 import ao.com.angotech.util.ConsoleUtil;
@@ -22,11 +23,12 @@ public class Main {
 
         while (continuar) {
             UserInput input = new UserInput(
-                    ConsoleUtil.prompt("Digite seu nome completo"),
-                    ConsoleUtil.prompt("Digite sua área de interesse"),
-                    ConsoleUtil.promptList("Liste suas experiências"),
-                    ConsoleUtil.prompt("Digite sua formação acadêmica"),
-                    ConsoleUtil.promptList("Liste suas habilidades")
+                ConsoleUtil.prompt("Digite seu nome completo"),
+                ConsoleUtil.prompt("Digite sua área de interesse"),
+                ConsoleUtil.promptList("Liste suas experiências"),
+                ConsoleUtil.prompt("Digite sua formação acadêmica"),
+                ConsoleUtil.promptList("Liste suas habilidades"),
+                ConsoleUtil.prompt("Digite a sua cidade")
             );
 
             Curriculum curriculum = openAiService.gerarCurriculo(input);
@@ -43,17 +45,40 @@ public class Main {
             switch (opcao) {
                 case "1":
                     try {
-                        pdfService.exportToPdf(curriculum, "curriculo.pdf");
-                        System.out.println("📂 Currículo exportado para: curriculo.pdf");
+
+                        String nomeArquivoBase = input.getNomeCompleto().trim().replace(" ", "_");
+                        String pdfPath = "curriculo_" + nomeArquivoBase + ".pdf";
+
+                        pdfService.exportToPdf(curriculum, pdfPath);
+                        System.out.println("Currículo expostado para: " + pdfPath);
+
+                        String enviarEmail = ConsoleUtil.prompt("Deseja enviar o curriculo por e-mail (s/n)");
+                        if ( enviarEmail.equalsIgnoreCase("s") ) {
+                            String destinatario = ConsoleUtil.prompt("Digite o e-mail de destino");
+
+                            EmailService emailService = new EmailService(System.getenv("SENDGRID_API_KEY"));
+                            emailService.enviarComAnexo(
+                                    destinatario,
+                                    "Seu Currículo Inteligente",
+                                    "Segue em anexo o currículo gerado automaticamente",
+                                    pdfPath
+                            );
+
+                            System.out.println("Currículo enviado com sucesso para " + destinatario);
+                        }
                     } catch (Exception e) {
-                        System.err.println("Erro ao gerar PDF: " + e.getMessage());
+                        System.err.println("Erro ao gerar ou enviar PDF: " + e.getMessage());
                     }
                     break;
 
                 case "2":
-                    try (FileWriter writer = new FileWriter("curriculo.md")) {
+
+                    String nomeArquivoBase = input.getNomeCompleto().trim().replace(" ", "_");
+                    String mdPath = "curriculo_" + nomeArquivoBase + ".md";
+
+                    try (FileWriter writer = new FileWriter(mdPath)) {
                         writer.write(curriculum.getConteudoMarkdown());
-                        System.out.println("📂 Currículo exportado para: curriculo.md");
+                        System.out.println("📂 Currículo exportado para: " + mdPath);
                     } catch (IOException e) {
                         System.err.println("Erro ao salvar Markdown: " + e.getMessage());
                     }

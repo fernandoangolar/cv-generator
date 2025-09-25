@@ -20,6 +20,7 @@ public class OpenAiServiceWrapper {
 
     public Curriculum gerarCurriculo(UserInput input) {
         String prompt = String.format("""
+            Saber identicar o usuário oelo seu País, cada pais tem o seu documento a ser aceite no CV.
             Gere um currículo profissional para %s na área %s.
 
             ## Experiências
